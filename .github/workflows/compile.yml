@@ -1,0 +1,96 @@
+# (c) 2026 logandhillon.com
+# build pyinstaller app and upload to gh releases
+name: compile for all platforms
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    name: build pyinstaller executables
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: build executable
+        run: |
+          if [ "${{ runner.os }}" == "Windows" ]; then
+            pyinstaller --windowed --add-data "com/logandhillon/easyscout/res;com/logandhillon/easyscout/res" easyscout.py
+          else
+            pyinstaller --windowed --add-data "com/logandhillon/easyscout/res:com/logandhillon/easyscout/res" easyscout.py
+          fi
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.os }}
+          path: dist
+          retention-days: 30
+
+  attach-to-release:
+    name: attach artifacts to GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-ubuntu-latest
+          path: artifacts/ubuntu
+
+      - name: download artifacts (Windows)
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-windows-latest
+          path: artifacts/windows
+
+      - name: download artifacts (macOS)
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-macos-latest
+          path: artifacts/macos
+
+      - name: zip Ubuntu installer
+        run: |
+          cd artifacts/ubuntu
+          zip -r frc-easyscout-${{ github.event.release.tag_name }}-linux.zip .
+
+      - name: zip Windows installer
+        run: |
+          cd artifacts/windows
+          zip -r frc-easyscout-${{ github.event.release.tag_name }}-windows.zip .
+
+      - name: zip macOS installer
+        run: |
+          cd artifacts/macos
+          zip -r frc-easyscout-${{ github.event.release.tag_name }}-macos.zip .
+
+      - name: create release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          name: ${{ github.event.release.name }}
+          body: ${{ github.event.release.body }}
+          draft: false
+          prerelease: ${{ github.event.release.prerelease }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: artifacts/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
