@@ -23,8 +23,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: setup Python
+        uses: actions/setup-python@v4s
+        with:
+          python-version: '3.x'
+
       - name: build executable
         run: |
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install pyinstaller
           if [ "${{ runner.os }}" == "Windows" ]; then
             pyinstaller --windowed --add-data "com/logandhillon/easyscout/res;com/logandhillon/easyscout/res" easyscout.py
           else
