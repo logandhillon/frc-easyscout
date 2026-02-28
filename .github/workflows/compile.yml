@@ -16,7 +16,7 @@ jobs:
     name: build pyinstaller executables
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        os: [ windows-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -51,12 +51,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: binary-ubuntu-latest
-          path: artifacts/ubuntu
-
       - name: download artifacts (Windows)
         uses: actions/download-artifact@v4
         with:
@@ -68,11 +62,6 @@ jobs:
         with:
           name: binary-macos-latest
           path: artifacts/macos
-
-      - name: zip Ubuntu installer
-        run: |
-          cd artifacts/ubuntu
-          zip -r frc-easyscout-${{ github.event.release.tag_name }}-linux.zip .
 
       - name: zip Windows installer
         run: |
